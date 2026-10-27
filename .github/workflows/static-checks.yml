@@ -1,0 +1,27 @@
+name: Static checks
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Compile Python modules
+        run: python -m compileall -q asia_hms_integration
+      - name: Validate DocType JSON
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          files = list(Path("asia_hms_integration").rglob("*.json"))
+          assert len(files) >= 3, f"Expected >=3 DocTypes, found {len(files)}"
+          for p in files:
+              data = json.loads(p.read_text(encoding="utf-8"))
+              assert data.get("doctype") == "DocType", p
+              assert data.get("name"), p
+          print(f"Validated {len(files)} DocType definitions")
+          PY
