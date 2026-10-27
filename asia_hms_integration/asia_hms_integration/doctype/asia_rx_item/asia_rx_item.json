@@ -1,0 +1,76 @@
+{
+ "doctype": "DocType",
+ "name": "ASIA Rx Item",
+ "module": "ASIA HMS Integration",
+ "custom": 0,
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_row",
+  "medication_item",
+  "medicine_name",
+  "dosage",
+  "period",
+  "quantity_to_dispense",
+  "quantity_needs_review"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_row",
+   "fieldtype": "Data",
+   "label": "Source Prescription Row",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "medication_item",
+   "fieldtype": "Link",
+   "label": "Medicine Item",
+   "options": "Item",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "medicine_name",
+   "fieldtype": "Data",
+   "label": "Medicine Name",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "dosage",
+   "fieldtype": "Data",
+   "label": "Dosage",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Data",
+   "label": "Duration",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity_to_dispense",
+   "fieldtype": "Float",
+   "label": "Confirmed Quantity",
+   "read_only": 1,
+   "default": "0",
+   "description": "Not calculated yet; pharmacy must confirm quantity before billing."
+  },
+  {
+   "fieldname": "quantity_needs_review",
+   "fieldtype": "Check",
+   "label": "Quantity Requires Pharmacist Review",
+   "default": "1",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "states": [],
+ "track_changes": 0,
+ "istable": 1
+}

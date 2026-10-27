@@ -1,0 +1,2 @@
+recursive-include asia_hms_integration *.json *.js *.txt *.html *.css
+include README.md LICENSE

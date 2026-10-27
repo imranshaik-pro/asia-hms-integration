@@ -1,0 +1,80 @@
+{
+ "doctype": "DocType",
+ "name": "ASIA Integration Settings",
+ "module": "ASIA HMS Integration",
+ "custom": 0,
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "clinic_company",
+  "pharmacy_company",
+  "pharmacy_warehouse",
+  "medicine_item_group",
+  "enable_rx_handoff",
+  "sharing_policy_approved"
+ ],
+ "fields": [
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable ASIA HMS Integration",
+   "default": "0"
+  },
+  {
+   "fieldname": "clinic_company",
+   "fieldtype": "Link",
+   "label": "Clinic Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pharmacy_company",
+   "fieldtype": "Link",
+   "label": "Pharmacy Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pharmacy_warehouse",
+   "fieldtype": "Link",
+   "label": "Pharmacy Retail Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "medicine_item_group",
+   "fieldtype": "Link",
+   "label": "Medicine Item Group (optional)",
+   "options": "Item Group",
+   "description": "When empty, search includes every stock item."
+  },
+  {
+   "fieldname": "enable_rx_handoff",
+   "fieldtype": "Check",
+   "label": "Automatically Queue Finalized Prescriptions",
+   "default": "0"
+  },
+  {
+   "fieldname": "sharing_policy_approved",
+   "fieldtype": "Check",
+   "label": "Clinic–Pharmacy Data Sharing Policy Approved",
+   "default": "0",
+   "description": "A responsible administrator must complete privacy and consent review before enabling."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1
+  }
+ ],
+ "links": [],
+ "states": [],
+ "track_changes": 0,
+ "issingle": 1
+}

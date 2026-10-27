@@ -1,0 +1,1 @@
+# No schema patches are required for the initial ASIA HMS integration MVP.
