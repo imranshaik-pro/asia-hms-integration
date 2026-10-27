@@ -12,6 +12,16 @@ jobs:
           python-version: "3.14"
       - name: Compile Python modules
         run: python -m compileall -q asia_hms_integration
+      - name: Validate Frappe app recognition files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("asia_hms_integration")
+          for name in ("hooks.py", "modules.txt", "patches.txt"):
+              path = root / name
+              assert path.is_file(), f"Missing Frappe-required file: {path}"
+          print("Frappe app registration files present")
+          PY
       - name: Validate DocType JSON
         run: |
           python - <<'PY'
