@@ -22,6 +22,10 @@ jobs:
               assert path.is_file(), f"Missing Frappe-required file: {path}"
           print("Frappe app registration files present")
           PY
+      - name: Validate quantity input rules
+        run: PYTHONPATH=asia_hms_integration python -m unittest discover -s tests -p 'test_*.py'
+      - name: Check review form JavaScript
+        run: node --check asia_hms_integration/public/js/asia_rx_handoff.js
       - name: Validate DocType JSON
         run: |
           python - <<'PY'
