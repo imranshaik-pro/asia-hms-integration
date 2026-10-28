@@ -17,6 +17,10 @@
   "quantity_reviewed_by",
   "quantity_reviewed_at",
   "quantity_review_note",
+  "batch_reviewed_by",
+  "batch_reviewed_at",
+  "batch_review_note",
+  "batch_stock_checked_at",
   "items"
  ],
  "fields": [
@@ -79,7 +83,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Pending\nQuantity Reviewed\nPartly Dispensed\nDispensed\nCancelled\nReview Required",
+   "options": "Pending\nQuantity Reviewed\nBatch Data Reviewed\nPartly Dispensed\nDispensed\nCancelled\nReview Required",
    "default": "Pending",
    "in_list_view": 1
   },
@@ -101,6 +105,32 @@
    "fieldtype": "Small Text",
    "label": "Pharmacist Review Note",
    "read_only": 1
+  },
+  {
+   "fieldname": "batch_reviewed_by",
+   "fieldtype": "Link",
+   "label": "Batch Data Reviewed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch_reviewed_at",
+   "fieldtype": "Datetime",
+   "label": "Batch Data Reviewed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch_review_note",
+   "fieldtype": "Small Text",
+   "label": "Batch Data Review Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch_stock_checked_at",
+   "fieldtype": "Datetime",
+   "label": "Warehouse Stock Checked At",
+   "read_only": 1,
+   "description": "Point-in-time demo stock comparison; stock is not reserved."
   },
   {
    "fieldname": "items",

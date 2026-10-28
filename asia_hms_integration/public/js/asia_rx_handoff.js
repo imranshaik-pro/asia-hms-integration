@@ -2,6 +2,10 @@
 frappe.ui.form.on("ASIA Rx Handoff", {
   refresh(frm) {
     if (frm.is_new() || !(frappe.user_roles || []).includes("ASIA Pharmacist")) return;
+    if (frm.doc.status === "Quantity Reviewed") {
+      addBatchReviewButton(frm);
+      return;
+    }
     if (!["Pending", "Review Required"].includes(frm.doc.status)) return;
 
     frm.add_custom_button(__("Confirm Quantities (Review Only)"), async () => {
@@ -73,3 +77,89 @@ frappe.ui.form.on("ASIA Rx Handoff", {
     });
   },
 });
+
+
+function addBatchReviewButton(frm) {
+  frm.add_custom_button(__("Review Batch & Expiry (Demo Only)"), () => {
+    const rows = frm.doc.items || [];
+    if (!rows.length || rows.length > 30) {
+      frappe.msgprint(__("This prescription cannot be reviewed in bulk."));
+      return;
+    }
+
+    const fields = [
+      {
+        fieldname: "batch_warning",
+        fieldtype: "HTML",
+        options: '<div class="alert alert-warning">'
+          + "Demo data comparison only: enter the batch ID and expiry from the "
+          + "fictional pack label. These fields are not prefilled. Matching records "
+          + "does not certify physical inspection, reserve stock, or permit dispensing/billing."
+          + "</div>",
+      },
+      ...rows.flatMap((row, i) => [
+        {
+          fieldname: "batch_" + i,
+          fieldtype: "Data",
+          label: (i + 1) + ". " + row.medication_item + " — " + __("Batch number")
+            + " (" + row.quantity_to_dispense + " stock units)",
+          reqd: 1,
+        },
+        {
+          fieldname: "expiry_" + i,
+          fieldtype: "Date",
+          label: (i + 1) + ". " + __("Expiry from demo pack label"),
+          reqd: 1,
+        },
+      ]),
+      {
+        fieldname: "review_note",
+        fieldtype: "Small Text",
+        label: __("Batch Data Review Note"),
+        reqd: 1,
+      },
+      {
+        fieldname: "demo_acknowledged",
+        fieldtype: "Check",
+        label: __("I understand this is demo-only data matching, not permission to dispense or bill."),
+      },
+    ];
+    const dialog = new frappe.ui.Dialog({
+      title: __("Compare Batch and Expiry — Demo Only"),
+      fields,
+      primary_action_label: __("Save Batch Data Review"),
+      primary_action: async (values) => {
+        if (!values.demo_acknowledged) {
+          frappe.msgprint(__("Acknowledge the demo-only restriction."));
+          return;
+        }
+        const reviews = rows.map((row, i) => ({
+          row_name: row.name,
+          batch_no: values["batch_" + i],
+          observed_expiry: values["expiry_" + i],
+        }));
+        dialog.get_primary_btn().prop("disabled", true);
+        try {
+          await frappe.call({
+            method: "asia_hms_integration.batch_review.review_batch_data",
+            args: {
+              handoff_name: frm.doc.name,
+              reviews: JSON.stringify(reviews),
+              review_note: values.review_note,
+              demo_acknowledged: 1,
+            },
+          });
+          dialog.hide();
+          await frm.reload_doc();
+          frappe.show_alert({
+            message: __("Batch and expiry data matched. No stock was reserved, billed, or dispensed."),
+            indicator: "orange",
+          });
+        } finally {
+          dialog.get_primary_btn().prop("disabled", false);
+        }
+      },
+    });
+    dialog.show();
+  });
+}

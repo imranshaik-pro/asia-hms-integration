@@ -132,7 +132,7 @@ def pharmacy_queue(limit=20):
         "ASIA Rx Handoff",
         filters={
             "pharmacy_company": settings.pharmacy_company,
-            "status": ["in", ["Pending", "Review Required"]],
+            "status": ["in", ["Pending", "Review Required", "Quantity Reviewed", "Batch Data Reviewed"]],
         },
         fields=[
             "name", "source_encounter", "patient", "patient_name",

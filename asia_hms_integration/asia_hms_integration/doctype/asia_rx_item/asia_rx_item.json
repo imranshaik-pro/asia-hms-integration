@@ -12,7 +12,9 @@
   "dosage",
   "period",
   "quantity_to_dispense",
-  "quantity_needs_review"
+  "quantity_needs_review",
+  "reviewed_batch_no",
+  "reviewed_batch_expiry"
  ],
  "fields": [
   {
@@ -66,6 +68,20 @@
    "default": "1",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "reviewed_batch_no",
+   "fieldtype": "Link",
+   "label": "Batch Entered for Data Review",
+   "options": "Batch",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reviewed_batch_expiry",
+   "fieldtype": "Date",
+   "label": "Expiry Entered for Data Review",
+   "read_only": 1
   }
  ],
  "permissions": [],
