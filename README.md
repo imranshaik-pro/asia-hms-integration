@@ -16,8 +16,10 @@ with **Health Cube Pharmacy** on one ERPNext + [Marley Healthcare](https://githu
   submitted** (not while it is a draft), after an admin explicitly enables sharing.
 - Stores only minimal patient identification and prescription medicine rows, not diagnosis or
   the entire chart.
-- Allows role **ASIA Pharmacist** to read the pharmacy queue, but not edit clinical source
-  prescriptions or automatically dispense.
+- Allows role **ASIA Pharmacist** to read the pharmacy queue and confirm **stock-UOM quantities**
+  through a narrowly scoped, POST-only review action. The original clinical prescription and
+  read-only DocType permissions are preserved. A recorded reviewer, timestamp, and note are
+  visible on the handoff; status becomes **Quantity Reviewed**, not **Dispensed**.
 - If a submitted encounter is cancelled, marks the pending handoff cancelled, or flags processed
   ones **Review Required** for human reconciliation.
 - Requires a configured clinic company, pharmacy company, retail warehouse, and an admin's
@@ -26,6 +28,8 @@ with **Health Cube Pharmacy** on one ERPNext + [Marley Healthcare](https://githu
 ## What it deliberately does NOT do yet
 
 - **No** Sales Invoice, payment, batch selection, stock reservation or automatic stock mutation.
+- Quantity confirmation checks currently unreserved Bin stock, but **does not reserve any**.
+  It does **not verify batch/expiry or authorize billing or dispensing**, even after review.
 - **No** dispensing, substitution, controlled-drug compliance, prescription validity or
   partial-dispensing reconciliation.
 - **No** strip/loose-unit UOM conversion yet.
@@ -60,6 +64,9 @@ This branch is **not included** in that image until the build pipeline is explic
 - `asia_hms_integration.api.search_medicines(query="par")`: up to 20 stock Item matches.
 - `asia_hms_integration.api.stock_for_items(item_codes='["ITEM-001"]')`: refresh up to 30 Items.
 - `asia_hms_integration.api.pharmacy_queue(limit=20)`: pending/review handoffs for pharmacy role.
+- `asia_hms_integration.review.confirm_quantities(handoff_name, quantities, review_note)`:
+  POST-only, ASIA Pharmacist-only, checks all child-row quantities, stock and source Encounter;
+  records a non-dispensing quantity review. It never approves a sale or validates batch/expiry.
 
 Response includes warehouse, actual quantity, reserved quantity, available quantity and
 `batch_expiry_verified: false`. No stock changes from these endpoints.
