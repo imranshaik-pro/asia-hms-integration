@@ -23,4 +23,5 @@ doc_events = {
 
 doctype_js = {
     "Patient Encounter": "public/js/patient_encounter.js",
+    "ASIA Rx Handoff": "public/js/asia_rx_handoff.js",
 }
