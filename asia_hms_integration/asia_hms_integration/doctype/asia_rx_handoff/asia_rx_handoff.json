@@ -14,6 +14,9 @@
   "practitioner",
   "created_at",
   "status",
+  "quantity_reviewed_by",
+  "quantity_reviewed_at",
+  "quantity_review_note",
   "items"
  ],
  "fields": [
@@ -76,9 +79,28 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Pending\nPartly Dispensed\nDispensed\nCancelled\nReview Required",
+   "options": "Pending\nQuantity Reviewed\nPartly Dispensed\nDispensed\nCancelled\nReview Required",
    "default": "Pending",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "quantity_reviewed_by",
+   "fieldtype": "Link",
+   "label": "Quantity Reviewed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity_reviewed_at",
+   "fieldtype": "Datetime",
+   "label": "Quantity Reviewed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity_review_note",
+   "fieldtype": "Small Text",
+   "label": "Pharmacist Review Note",
+   "read_only": 1
   },
   {
    "fieldname": "items",
