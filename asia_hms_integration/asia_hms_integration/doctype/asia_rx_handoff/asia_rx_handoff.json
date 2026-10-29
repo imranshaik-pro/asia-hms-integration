@@ -21,6 +21,10 @@
   "batch_reviewed_at",
   "batch_review_note",
   "batch_stock_checked_at",
+  "draft_sales_invoice",
+  "invoice_drafted_by",
+  "invoice_drafted_at",
+  "invoice_tax_review_pending",
   "items"
  ],
  "fields": [
@@ -138,6 +142,36 @@
    "label": "Prescribed Medicines",
    "options": "ASIA Rx Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "draft_sales_invoice",
+   "fieldtype": "Link",
+   "label": "Draft Invoice (Tax Review Pending)",
+   "options": "Sales Invoice",
+   "read_only": 1,
+   "unique": 1,
+   "description": "Inert demo Sales Invoice. Never submitted, paid, or stock-posted."
+  },
+  {
+   "fieldname": "invoice_drafted_by",
+   "fieldtype": "Link",
+   "label": "Draft Prepared By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_drafted_at",
+   "fieldtype": "Datetime",
+   "label": "Draft Prepared At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_tax_review_pending",
+   "fieldtype": "Check",
+   "label": "Invoice Tax Review Pending",
+   "default": "0",
+   "read_only": 1,
+   "description": "Tax is not calculated or approved. This draft is not a final bill."
   }
  ],
  "permissions": [
