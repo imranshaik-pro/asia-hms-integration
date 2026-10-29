@@ -31,6 +31,17 @@ def _linked_draft_response(handoff, invoice, reused=False):
         frappe.throw(_("Linked invoice was changed; administrator review is required."))
     if invoice.customer != frappe.db.get_value("Patient", handoff.patient, "customer"):
         frappe.throw(_("Linked invoice customer does not match the patient."))
+    if not handoff.invoice_tax_review_pending:
+        frappe.throw(_("Linked draft lost its tax-pending audit flag; administrator review required."))
+    if len(invoice.items) != len(handoff.items):
+        frappe.throw(_("Linked invoice items were changed; administrator review required."))
+    for invoiced, reviewed in zip(invoice.items, handoff.items):
+        if (
+            invoiced.item_code != reviewed.medication_item
+            or invoiced.batch_no != reviewed.reviewed_batch_no
+            or Decimal(str(invoiced.qty)) != Decimal(str(reviewed.quantity_to_dispense))
+        ):
+            frappe.throw(_("Linked invoice no longer matches the reviewed prescription."))
     try:
         assert_draft_safety(invoice)
     except ValueError as exc:
@@ -53,10 +64,12 @@ def _linked_draft_response(handoff, invoice, reused=False):
 
 def _check_account(name, company, root_type):
     row = frappe.db.get_value(
-        "Account", name, ["company", "disabled", "is_group", "root_type"], as_dict=True
+        "Account", name, ["company", "disabled", "is_group", "root_type", "account_type"], as_dict=True
     ) if name else None
     if not row or row.company != company or row.disabled or row.is_group or row.root_type != root_type:
         frappe.throw(_("Invalid {0} account for pharmacy company.").format(root_type))
+    if root_type == "Asset" and row.account_type != "Receivable":
+        frappe.throw(_("The pharmacy receivable account must have Account Type Receivable."))
 
 
 def _draft_items(handoff, settings, currency):
@@ -202,7 +215,10 @@ def prepare_invoice_draft(handoff_name, demo_acknowledged=0):
         frappe.throw(_("The source encounter must remain submitted by the clinic."))
 
     customer = frappe.db.get_value("Patient", handoff.patient, "customer")
-    if not customer or frappe.db.get_value("Customer", customer, "disabled"):
+    customer_row = frappe.db.get_value(
+        "Customer", customer, ["name", "disabled"], as_dict=True
+    ) if customer else None
+    if not customer_row or customer_row.disabled:
         frappe.throw(_("The Patient must link to an enabled ERPNext Customer."))
 
     if handoff.draft_sales_invoice:
