@@ -18,7 +18,11 @@ doc_events = {
     "Patient Encounter": {
         "on_submit": "asia_hms_integration.handoff.on_encounter_submit",
         "on_cancel": "asia_hms_integration.handoff.on_encounter_cancel",
-    }
+    },
+    "Sales Invoice": {
+        "validate": "asia_hms_integration.invoice_draft.protect_linked_draft",
+        "before_submit": "asia_hms_integration.invoice_draft.block_linked_invoice_submission",
+    },
 }
 
 doctype_js = {
