@@ -20,6 +20,7 @@ from asia_hms_integration.invoice_draft_validation import (
     choose_active_price,
     positive_quantity,
 )
+from asia_hms_integration.invoice_draft_snapshot import assert_snapshot_matches, snapshot_hash
 
 # Known staging configuration, not a GST/tax policy. Change only after review.
 DEMO_PRICE_LIST = "Standard Selling"
@@ -46,6 +47,11 @@ def _linked_draft_response(handoff, invoice, reused=False):
         assert_draft_safety(invoice)
     except ValueError as exc:
         frappe.throw(_(str(exc)))
+    if reused:
+        try:
+            assert_snapshot_matches(invoice, handoff.get("invoice_snapshot_hash"))
+        except ValueError as exc:
+            frappe.throw(_(str(exc)))
     return {
         "name": invoice.name,
         "handoff": handoff.name,
@@ -187,10 +193,18 @@ def prepare_invoice_draft(handoff_name, demo_acknowledged=0):
         frappe.throw(_("Specify a prescription handoff."))
 
     # Serializes concurrent button presses; no inventory locks/reservations occur.
-    if not frappe.db.sql(
-        "SELECT name FROM `tabASIA Rx Handoff` WHERE name = %s FOR UPDATE",
-        (handoff_name,),
-    ):
+    # Nothing has been written yet. End the read snapshot opened by the checks above
+    # so the locked read below sees a draft committed by a concurrent request.
+    frappe.db.rollback()
+    try:
+        locked = frappe.db.sql(
+            "SELECT name FROM `tabASIA Rx Handoff` WHERE name = %s FOR UPDATE",
+            (handoff_name,),
+        )
+    except (frappe.exceptions.QueryTimeoutError, frappe.exceptions.QueryDeadlockError):
+        frappe.db.rollback()
+        frappe.throw(_("Another request is preparing a draft for this prescription. Wait a moment, then reopen the handoff."))
+    if not locked:
         frappe.throw(_("Prescription handoff not found."), frappe.DoesNotExistError)
     handoff = frappe.get_doc("ASIA Rx Handoff", handoff_name)
     if not frappe.has_permission(
@@ -277,7 +291,19 @@ def prepare_invoice_draft(handoff_name, demo_acknowledged=0):
             "SUBMISSION IS BLOCKED pending a separately approved Stage B."
         ).format(handoff.name),
     })
-    invoice.insert(ignore_permissions=True)
+    acting_user = frappe.session.user
+    frappe.set_user("Administrator")
+    try:
+        invoice.insert(ignore_permissions=True)
+    finally:
+        frappe.set_user(acting_user)
+    frappe.db.set_value(
+        "Sales Invoice", invoice.name,
+        {"owner": acting_user, "modified_by": acting_user},
+        update_modified=False,
+    )
+    invoice.owner = acting_user
+    invoice.modified_by = acting_user
 
     try:
         assert_draft_safety(invoice)
@@ -300,7 +326,12 @@ def prepare_invoice_draft(handoff_name, demo_acknowledged=0):
     handoff.invoice_drafted_by = frappe.session.user
     handoff.invoice_drafted_at = now_datetime()
     handoff.invoice_tax_review_pending = 1
-    handoff.save(ignore_permissions=True)
+    handoff.invoice_snapshot_hash = snapshot_hash(frappe.get_doc("Sales Invoice", invoice.name))
+    frappe.flags.asia_invoice_draft_write = True
+    try:
+        handoff.save(ignore_permissions=True)
+    finally:
+        frappe.flags.asia_invoice_draft_write = False
     handoff.add_comment(
         "Info",
         text="Demo draft Sales Invoice {0} prepared for tax review only. "
@@ -311,12 +342,17 @@ def prepare_invoice_draft(handoff_name, demo_acknowledged=0):
 
 def protect_linked_draft(doc, method=None):
     """Every normal Sales Invoice save respects the no-stock/no-charge draft invariant."""
-    if not doc.name or not frappe.db.exists(
-        "ASIA Rx Handoff", {"draft_sales_invoice": doc.name}
-    ):
+    if not doc.name:
+        return
+    linked = frappe.db.get_value(
+        "ASIA Rx Handoff", {"draft_sales_invoice": doc.name},
+        ["name", "invoice_snapshot_hash"], as_dict=True,
+    )
+    if not linked:
         return
     try:
         assert_draft_safety(doc)
+        assert_snapshot_matches(doc, linked.invoice_snapshot_hash)
     except ValueError as exc:
         frappe.throw(_(str(exc)), frappe.PermissionError)
 

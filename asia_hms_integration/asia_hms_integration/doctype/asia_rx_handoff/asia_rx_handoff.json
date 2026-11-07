@@ -25,6 +25,7 @@
   "invoice_drafted_by",
   "invoice_drafted_at",
   "invoice_tax_review_pending",
+  "invoice_snapshot_hash",
   "items"
  ],
  "fields": [
@@ -172,6 +173,14 @@
    "default": "0",
    "read_only": 1,
    "description": "Tax is not calculated or approved. This draft is not a final bill."
+  },
+  {
+   "fieldname": "invoice_snapshot_hash",
+   "fieldtype": "Data",
+   "label": "Invoice Integrity Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
   }
  ],
  "permissions": [

@@ -1,6 +1,7 @@
 // Add a controlled review action without granting DocType Write permission.
 frappe.ui.form.on("ASIA Rx Handoff", {
   refresh(frm) {
+    if (!frm.is_new()) showProgressTracker(frm);
     if (frm.is_new() || !(frappe.user_roles || []).includes("ASIA Pharmacist")) return;
     if (frm.doc.status === "Batch Data Reviewed") {
       addDraftInvoiceButton(frm);
@@ -192,11 +193,7 @@ function addDraftInvoiceButton(frm) {
           fieldname: "draft_warning",
           fieldtype: "HTML",
           options: '<div class="alert alert-warning">'
-            + "<strong>Demo-only pre-tax estimate.</strong> "
-            + "Taxes/GST have NOT been reviewed; the amount is not a final payable total. "
-            + "Batch data was compared with ERPNext, but physical packs were NOT inspected. "
-            + "The draft will not submit, reserve or deduct stock, create a payment, "
-            + "or authorize dispensing."
+            + draftNoticeBody(frm)
             + "</div>",
         },
         {
@@ -238,4 +235,31 @@ function addDraftInvoiceButton(frm) {
     });
     dialog.show();
   });
+}
+
+function showProgressTracker(frm) {
+  const status = frm.doc.status;
+  if (!["Pending", "Review Required", "Quantity Reviewed", "Batch Data Reviewed"].includes(status)) return;
+  const steps = ["Received", "Quantities reviewed", "Batch and expiry compared", "Tax-pending draft"];
+  let done = 1;
+  if (status === "Quantity Reviewed") done = 2;
+  if (status === "Batch Data Reviewed") done = frm.doc.draft_sales_invoice ? 4 : 3;
+  const html = steps.map((label, i) => {
+    const mark = i < done ? "&#10003;" : (i === done ? "&#9679;" : "&#9675;");
+    const style = i < done ? "color:#2e7d32;font-weight:600" : (i === done ? "color:#e65100;font-weight:600" : "color:#888");
+    return `<span style="${style}">${mark} ${__(label)}</span>`;
+  }).join(" &nbsp;&rarr;&nbsp; ");
+  const note = __("Draft only: tax review is pending. Nothing is billed, reserved or dispensed.");
+  frm.set_intro(`${html}<br><small>${note}</small>`, done === 4 ? "green" : "orange");
+}
+
+function draftNoticeBody(frm) {
+  const esc = (v) => frappe.utils.escape_html(String(v ?? ""));
+  const rows = (frm.doc.items || []).map((r) => `<tr><td>${esc(r.medication_item)}</td><td>${esc(r.quantity_to_dispense)}</td><td>${esc(r.reviewed_batch_no)}</td><td>${esc(r.reviewed_batch_expiry)}</td></tr>`).join("");
+  const table = `<table class="table table-bordered table-sm" style="margin:8px 0;background:#fff"><thead><tr><th>${__("Medicine")}</th><th>${__("Quantity")}</th><th>${__("Reviewed batch")}</th><th>${__("Reviewed expiry")}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return "<strong>" + __("Not a bill. Demo-only pre-tax estimate.") + "</strong> "
+    + __("Taxes/GST have NOT been reviewed; the amount is not a final payable total. ")
+    + "<br>" + table
+    + __("Batch data was compared with ERPNext, but physical packs were NOT inspected. ")
+    + __("The draft will not submit, reserve or deduct stock, create a payment, or authorize dispensing.");
 }
