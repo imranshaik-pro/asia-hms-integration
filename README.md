@@ -28,7 +28,7 @@ with **Health Cube Pharmacy** on one ERPNext + [Marley Healthcare](https://githu
 
 ## What it deliberately does NOT do yet
 
-- **No** Sales Invoice, payment, stock reservation or automatic stock mutation. Batch review is a comparison, not fulfillment.
+- **No submitted** Sales Invoice, payment, stock reservation or automatic stock mutation. Stage A can prepare only a visibly tax-pending draft (after batch review); batch review alone is not fulfillment.
 - Quantity confirmation checks unreserved Bin stock but **does not reserve any**.
 - Batch data review compares manually entered batch/expiry with the ERPNext Batch record and
   point-in-time batch + unreserved Bin stock. It cannot independently establish that a real
@@ -43,7 +43,7 @@ with **Health Cube Pharmacy** on one ERPNext + [Marley Healthcare](https://githu
   must recheck batch, expiry, stock, patient/Rx and permissions atomically.
 - Stock search results remain labelled **not batch/expiry verified**. Pharmacist must
   independently inspect the real package, original Rx, and local dispensing requirements.
-- **No** GST/tax calculation, receipts (80mm/A4/PDF), or live health data deployment.
+- **No** GST/tax calculation, final payable amount, receipts (80mm/A4/PDF), or live health data deployment. An ASIA-linked draft cannot be submitted.
 - **No** support for inpatient medication orders.
 
 ## Compatibility
@@ -119,3 +119,61 @@ The ERPNext Batch quantity API may require **Batch Select** access for the pharm
 If a role permission error occurs, have an administrator evaluate and grant only the
 necessary least-privilege permission in staging; do not replace the check with an
 unrestricted quantity lookup.
+
+## Stage A — tax-pending invoice draft (not billing or dispensing)
+
+This independent feature branch adds a narrowly scoped POST endpoint,
+`asia_hms_integration.invoice_draft.prepare_invoice_draft(handoff_name, demo_acknowledged=1)`.
+It is enabled only for the `ASIA Pharmacist` role after the handoff reaches
+`Batch Data Reviewed`. The user must explicitly acknowledge the demo restrictions.
+
+- Requires approved integration settings, matching clinic/pharmacy companies,
+  a still-submitted source Patient Encounter, an enabled Patient-linked Customer,
+  active pharmacy accounts, a single active leaf pharmacy Cost Center, an enabled
+  INR `Standard Selling` Price List, unique active Item Prices and fresh
+  Item/Batch/expiry/warehouse-stock checks.
+- Creates exactly one `docstatus=0` Sales Invoice per handoff, linking it on
+  the handoff together with creator/time and `Invoice Tax Review Pending` audit.
+  Concurrent duplicate requests serialize on the handoff row lock, and retry
+  returns the same draft. If the stored link is broken, drafting fails closed.
+- Invoice contains reviewed Item/stock-UOM quantity, entered batch reference,
+  configured pharmacy warehouse, pre-tax Item Price, valid income account and
+  Cost Center, and Healthcare Patient/practitioner references.
+- `update_stock=0`, `is_pos=0`, no tax rows, no paid amount and no advances.
+  `remarks` labels the invoice **DEMO ONLY, TAX REVIEW PENDING, NOT FINAL**.
+  Pricing is a *pre-tax estimate*, not a compliant total or payment request.
+- Sales Invoice `validate` checks for unsafe changes to a linked draft and
+  `before_submit` **always blocks** submission of an ASIA-linked invoice.
+  Stage B is deliberately absent. No additional Create/Write Sales Invoice
+  permission is granted to pharmacist accounts.
+
+**Stage A is not safe for production** until independent Frappe v16 staging
+integration tests verify native Sales Invoice validation, no GL/Stock Ledger
+entries, no Serial and Batch Bundle movements, negative permission tests,
+wrong batch/expiry, insufficient stock, price ambiguity/expiry, concurrent
+requests, and submit rejection. The branch is *not deployed* by creating a PR.
+
+### Staging acceptance sequence — administrator only
+
+1. Back up the site and off-site copy, build and deploy a separate reviewed
+   image tag, then run `bench --site frontend migrate` and `clear-cache`.
+2. Check Handoff metadata and Sales Invoice hooks are loaded. Use a synthetic
+   handoff with a submitted source Encounter and completed quantity/batch reviews.
+3. Sign in with only `ASIA Pharmacist`, use **Prepare Draft Invoice (Tax Pending)**,
+   acknowledge warnings, and verify the handoff links one Draft Sales Invoice
+   with `invoice_tax_review_pending=1`, creator and timestamp.
+4. Retry the API or button: confirm the existing invoice is reused and no second
+   invoice exists. A pharmacist must not gain Sales Invoice Create/Write rights.
+5. Check invoice has `docstatus=0`, `update_stock=0`, `is_pos=0`, empty taxes,
+   zero paid/allocated amount, exact reviewed batch and quantity, and pricing
+   marked tax pending. The amount is not final.
+6. As an administrator, try to **submit the synthetic ASIA draft** and verify the
+   Stage B disabled guard rejects it. Do not change the guard or force submission.
+7. Independently compare Bin, Batch actual quantities, Stock Ledger Entry,
+   General Ledger Entry, Payment Entry and reserve quantities with the baseline.
+   All must remain unchanged from Stage A.
+8. Repeat failure cases on separate synthetic records. Do not reuse production
+   prescriptions and do not enable Stage B based on a green static CI check.
+
+The Frappe-independent validators have unit tests, but these **do not substitute**
+for real ERPNext integration acceptance on a backed-up staging site.
